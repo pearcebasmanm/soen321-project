@@ -11,6 +11,12 @@ A Python commandline encryption/decryption tool for the Information Systems Secu
 - Max Pearce Basman
 - Tianmu Yang
 
+## Setup
+
+- Install uv: https://docs.astral.sh/uv/getting-started/installation/
+- Run `uv run src/main.py`
+- When contributing use a formatter like ruff: https://docs.astral.sh/ruff/installation/
+
 ## Features
 
 TODO: Add RSA, and others.
