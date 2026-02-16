@@ -1,4 +1,5 @@
 import click
+from typing import Optional
 
 import rsa
 import utils
@@ -21,7 +22,7 @@ def _rsa():
 @click.option("-p", type=click.INT)
 @click.option("-q", type=click.INT)
 @click.option("-e", type=click.INT, default=2**16 + 1)
-def _rsa_keygen(p, q, e):
+def _rsa_keygen(p: Optional[int], q: Optional[int], e: int) -> None:
     """
     TODO: document
     """
@@ -30,8 +31,7 @@ def _rsa_keygen(p, q, e):
         raise click.UsageError("If -p is provided, -q must also be provided")
     if p is None and q is not None:
         raise click.UsageError("If -q is provided, -p must also be provided")
-
-    if (p and not utils.is_prime(p)) or (q and not utils.is_prime(q)):
+    if not utils.is_prime(p) or not utils.is_prime(q):
         raise click.UsageError("Both -p and -q must be primes")
 
     # Defaults
@@ -54,7 +54,7 @@ def _rsa_keygen(p, q, e):
 @click.option("-n", type=click.INT, required=True)
 @click.option("-e", type=click.INT, required=True)
 @click.argument("message")
-def _rsa_encrypt(n, e, message):
+def _rsa_encrypt(n: int, e: int, message: str) -> None:
     """
     TODO: document
     """
@@ -62,6 +62,7 @@ def _rsa_encrypt(n, e, message):
         m = int(message)
     else:
         m = int.from_bytes(message.encode("utf-8"), byteorder="big")
+        print(m)
 
     if m >= n:
         print("WARNING: this message is too large")
@@ -70,11 +71,11 @@ def _rsa_encrypt(n, e, message):
     print("Encrypted message (safe to share):", c)
 
 
-@_rsa.command("decrypt")
+@_rsa.command()
 @click.option("-n", type=click.INT, required=True)
 @click.option("-d", type=click.INT, required=True)
 @click.argument("message")
-def _rsa_decrypt(n, d, message):
+def decrypt(n: int, d: int, message: str) -> None:
     """
     TODO: document
     """

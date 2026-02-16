@@ -1,7 +1,7 @@
 import math
 
 
-def generate_keys(p, q, e):
+def generate_keys(p: int, q: int, e: int):
     """
     Precondition: p and q are primes
     """
@@ -21,11 +21,11 @@ def generate_keys(p, q, e):
     return {"n": n, "e": e, "d": d}
 
 
-def encrypt(m, e, n):
+def encrypt(m: int, e: int, n: int) -> int:
     c = pow(m, e, n)
     return c
 
 
-def decrypt(c, d, n):
+def decrypt(c: int, d: int, n: int) -> int:
     m = pow(c, d, n)
     return m

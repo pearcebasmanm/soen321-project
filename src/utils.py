@@ -1,4 +1,4 @@
-def random_prime():
+def random_prime() -> int:
     import secrets
 
     # TODO: REMOVE THIS LIST AND CHANGE IMPLEMENTATION
@@ -9,7 +9,7 @@ def random_prime():
     return secrets.choice(PRIMES)
 
 
-def is_prime(number):
+def is_prime(number: int) -> bool:
     if number < 2:
         return False
 
