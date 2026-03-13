@@ -3,7 +3,6 @@
 import secrets
 
 from dataclasses import dataclass
-from number_theory import modexp
 
 
 # Using a fixed large prime just for simple demos and tests.
@@ -23,10 +22,10 @@ def generate_private_exponent(p: int) -> int:
 
 
 def compute_public_value(private_exponent: int, params: DHParameters) -> int:
-    return modexp(params.g, private_exponent, params.p)
+    return pow(params.g, private_exponent, mod=params.p)
 
 
 def compute_shared_secret(
     peer_public_value: int, private_exponent: int, params: DHParameters
 ) -> int:
-    return modexp(peer_public_value, private_exponent, params.p)
+    return pow(peer_public_value, private_exponent, mod=params.p)

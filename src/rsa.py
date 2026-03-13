@@ -1,10 +1,10 @@
 """RSA for the SOEN 321 project prototype."""
 
 import hashlib
-import secrets
+import math
 
 from dataclasses import dataclass
-from number_theory import gcd, modexp, modinv, generate_prime
+from number_theory import generate_prime
 
 
 @dataclass
@@ -40,11 +40,11 @@ def generate_keypair(bits: int = 512, e: int = 65537) -> RSAKeyPair:
         if p == q:
             continue
         phi = (p - 1) * (q - 1)
-        if gcd(e, phi) == 1:
+        if math.gcd(e, phi) == 1:
             break
 
     n = p * q
-    d = modinv(e, phi)
+    d = pow(e, -1, mod=phi)
     return RSAKeyPair(
         public=RSAPublicKey(e=e, n=n),
         private=RSAPrivateKey(d=d, n=n),
@@ -56,11 +56,11 @@ def generate_keypair(bits: int = 512, e: int = 65537) -> RSAKeyPair:
 def encrypt_int(m: int, public_key: RSAPublicKey) -> int:
     if not (0 <= m < public_key.n):
         raise ValueError("Message representative out of range for RSA modulus.")
-    return modexp(m, public_key.e, public_key.n)
+    return pow(m, public_key.e, mod=public_key.n)
 
 
 def decrypt_int(c: int, private_key: RSAPrivateKey) -> int:
-    return modexp(c, private_key.d, private_key.n)
+    return pow(c, private_key.d, mod=private_key.n)
 
 
 # This method is used to hash the plaintext before RSA.
@@ -70,10 +70,10 @@ def hash_to_int(data: bytes) -> int:
 
 def sign(data: bytes, private_key: RSAPrivateKey) -> int:
     h = hash_to_int(data) % private_key.n
-    return modexp(h, private_key.d, private_key.n)
+    return pow(h, private_key.d, mod=private_key.n)
 
 
 def verify(data: bytes, signature: int, public_key: RSAPublicKey) -> bool:
     h = hash_to_int(data) % public_key.n
-    recovered = modexp(signature, public_key.e, public_key.n)
+    recovered = pow(signature, public_key.e, public_key.n)
     return recovered == h
