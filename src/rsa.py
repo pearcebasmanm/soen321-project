@@ -1,7 +1,5 @@
 """RSA for the SOEN 321 project prototype."""
 
-from __future__ import annotations
-
 import hashlib
 import secrets
 
@@ -14,10 +12,12 @@ class RSAPublicKey:
     e: int
     n: int
 
+
 @dataclass
 class RSAPrivateKey:
     d: int
     n: int
+
 
 @dataclass
 class RSAKeyPair:
@@ -26,11 +26,12 @@ class RSAKeyPair:
     p: int
     q: int
 
+
 def generate_keypair(bits: int = 512, e: int = 65537) -> RSAKeyPair:
     """
     Generate an RSA key pair.
-    Num of bits is set to 512 to keep the demo quick and simple. 
-    Explained in the report that real systems should use larger parameters, typically with 2048 bits. 
+    Num of bits is set to 512 to keep the demo quick and simple.
+    Explained in the report that real systems should use larger parameters, typically with 2048 bits.
     """
     half = bits // 2
     while True:
@@ -51,13 +52,16 @@ def generate_keypair(bits: int = 512, e: int = 65537) -> RSAKeyPair:
         q=q,
     )
 
+
 def encrypt_int(m: int, public_key: RSAPublicKey) -> int:
     if not (0 <= m < public_key.n):
         raise ValueError("Message representative out of range for RSA modulus.")
     return modexp(m, public_key.e, public_key.n)
 
+
 def decrypt_int(c: int, private_key: RSAPrivateKey) -> int:
     return modexp(c, private_key.d, private_key.n)
+
 
 # This method is used to hash the plaintext before RSA.
 def hash_to_int(data: bytes) -> int:
