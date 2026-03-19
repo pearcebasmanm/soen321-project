@@ -1,8 +1,8 @@
 """Diffie-Hellman primitives for the SOEN 321 project prototype."""
+from __future__ import annotations
 
 
 import secrets
-from __future__ import annotations
 from dataclasses import dataclass
 from number_theory import modexp
 
@@ -10,7 +10,7 @@ from number_theory import modexp
 # Using a fixed large prime just for simple demos and tests.
 # In the real world, systems need stronger parameter validation.
 DEFAULT_P = (1 << 127) - 1
-DEFAULT_G = 3 
+DEFAULT_G = 3
 
 @dataclass
 class DHParameters:
