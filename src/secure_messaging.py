@@ -2,7 +2,7 @@
 
 Protocol summary:
 1. Each user has an RSA key pair for signatures.
-2. Alice and Bob run Diffie-Hellman to derive a shared secret.
+2. User1 and User2 run Diffie-Hellman to derive a shared secret.
 3. DH public values are signed with RSA to mitigate the man-in-the-middle
    attack discussed in the course slides.
 4. A session key is derived from the DH secret and nonces using SHA-256.
@@ -10,15 +10,18 @@ Protocol summary:
 6. Ciphertext metadata is signed by the sender.
 """
 
-from __future__ import annotations
-
 import hashlib
 import json
 import secrets
 from dataclasses import dataclass
 from typing import Any
 
-from dh import DHParameters, compute_public_value, compute_shared_secret, generate_private_exponent
+from dh import (
+    DHParameters,
+    compute_public_value,
+    compute_shared_secret,
+    generate_private_exponent,
+)
 from rsa import RSAKeyPair, sign, verify, hash_to_int
 
 
@@ -65,7 +68,9 @@ class SessionState:
     session_key: bytes
 
 
-def initiate_session(initiator: Party, responder: Party, params: DHParameters) -> tuple[dict[str, Any], int]:
+def initiate_session(
+    initiator: Party, responder: Party, params: DHParameters
+) -> tuple[dict[str, Any], int]:
     a = generate_private_exponent(params.p)
     A = compute_public_value(a, params)
     nonce_a = secrets.token_bytes(16)
@@ -95,11 +100,11 @@ def respond_session(
     B = compute_public_value(b, params)
     nonce_b = secrets.token_bytes(16)
     shared_secret = compute_shared_secret(message_1["public_value"], b, params)
-    session_key = _derive_session_key(shared_secret, bytes.fromhex(message_1["nonce_a"]), nonce_b)
-
-    payload_2 = (
-        f"{responder.name}|{initiator.name}|{B}|{message_1['nonce_a']}|{nonce_b.hex()}".encode()
+    session_key = _derive_session_key(
+        shared_secret, bytes.fromhex(message_1["nonce_a"]), nonce_b
     )
+
+    payload_2 = f"{responder.name}|{initiator.name}|{B}|{message_1['nonce_a']}|{nonce_b.hex()}".encode()
     sigma_b = sign(payload_2, responder.rsa_keys.private)
     message_2 = {
         "sender": responder.name,
@@ -131,9 +136,7 @@ def finalize_session(
     private_a: int,
     message_2: dict[str, Any],
 ) -> SessionState:
-    payload_2 = (
-        f"{message_2['sender']}|{message_2['receiver']}|{message_2['public_value']}|{message_2['nonce_a']}|{message_2['nonce_b']}".encode()
-    )
+    payload_2 = f"{message_2['sender']}|{message_2['receiver']}|{message_2['public_value']}|{message_2['nonce_a']}|{message_2['nonce_b']}".encode()
     if not verify(payload_2, message_2["signature"], responder.rsa_keys.public):
         raise ValueError("Initiator rejected response: invalid signature")
 
@@ -156,7 +159,9 @@ def finalize_session(
     )
 
 
-def encrypt_message(sender: Party, session: SessionState, plaintext: str) -> dict[str, Any]:
+def encrypt_message(
+    sender: Party, session: SessionState, plaintext: str
+) -> dict[str, Any]:
     data = plaintext.encode("utf-8")
     ks = _keystream(session.session_key, len(data))
     ciphertext = _xor_bytes(data, ks)
@@ -177,10 +182,14 @@ def encrypt_message(sender: Party, session: SessionState, plaintext: str) -> dic
     }
 
 
-def decrypt_message(receiver_public_verify_key, session: SessionState, packet: dict[str, Any]) -> str:
+def decrypt_message(
+    receiver_public_verify_key, session: SessionState, packet: dict[str, Any]
+) -> str:
     header_bytes = json.dumps(packet["header"], sort_keys=True).encode()
     ciphertext = bytes.fromhex(packet["ciphertext_hex"])
-    if not verify(header_bytes + ciphertext, packet["signature"], receiver_public_verify_key):
+    if not verify(
+        header_bytes + ciphertext, packet["signature"], receiver_public_verify_key
+    ):
         raise ValueError("Invalid message signature")
 
     ks = _keystream(session.session_key, len(ciphertext))
