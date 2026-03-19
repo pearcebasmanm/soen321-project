@@ -23,8 +23,6 @@ class RSAPrivateKey:
 class RSAKeyPair:
     public: RSAPublicKey
     private: RSAPrivateKey
-    p: int
-    q: int
 
 
 def generate_keypair(bits: int = 512, e: int = 65537) -> RSAKeyPair:
@@ -48,8 +46,6 @@ def generate_keypair(bits: int = 512, e: int = 65537) -> RSAKeyPair:
     return RSAKeyPair(
         public=RSAPublicKey(e=e, n=n),
         private=RSAPrivateKey(d=d, n=n),
-        p=p,
-        q=q,
     )
 
 

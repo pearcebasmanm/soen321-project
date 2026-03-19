@@ -41,8 +41,6 @@ def _keypair_to_dict(kp: RSAKeyPair) -> dict:
     return {
         "public": {"e": kp.public.e, "n": kp.public.n},
         "private": {"d": kp.private.d, "n": kp.private.n},
-        "p": kp.p,
-        "q": kp.q,
     }
 
 
@@ -51,8 +49,6 @@ def _keypair_from_dict(d: dict) -> RSAKeyPair:
     return RSAKeyPair(
         public=RSAPublicKey(e=d["public"]["e"], n=d["public"]["n"]),
         private=RSAPrivateKey(d=d["private"]["d"], n=d["private"]["n"]),
-        p=d["p"],
-        q=d["q"],
     )
 
 
