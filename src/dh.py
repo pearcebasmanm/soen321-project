@@ -1,8 +1,8 @@
 """Diffie-Hellman primitives for the SOEN 321 project prototype."""
 
+from __future__ import annotations
 
 import secrets
-from __future__ import annotations
 from dataclasses import dataclass
 from number_theory import modexp
 

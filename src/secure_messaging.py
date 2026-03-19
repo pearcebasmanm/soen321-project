@@ -2,7 +2,7 @@
 
 Protocol summary:
 1. Each user has an RSA key pair for signatures.
-2. Alice and Bob run Diffie-Hellman to derive a shared secret.
+2. User1 and User2 run Diffie-Hellman to derive a shared secret.
 3. DH public values are signed with RSA to mitigate the man-in-the-middle
    attack discussed in the course slides.
 4. A session key is derived from the DH secret and nonces using SHA-256.
