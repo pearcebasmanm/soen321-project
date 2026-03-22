@@ -39,21 +39,21 @@ SBOX = [
     0x70,0x3E,0xB5,0x66,0x48,0x03,0xF6,0x0E,0x61,0x35,0x57,0xB9,0x86,0xC1,0x1D,0x9E,
     0xE1,0xF8,0x98,0x11,0x69,0xD9,0x8E,0x94,0x9B,0x1E,0x87,0xE9,0xCE,0x55,0x28,0xDF,
     0x8C,0xA1,0x89,0x0D,0xBF,0xE6,0x42,0x68,0x41,0x99,0x2D,0x0F,0xB0,0x54,0xBB,0x16,
-]
+]  # fmt: skip
 
 MIX_MATRIX = [
     [2, 3, 1, 1],
     [1, 2, 3, 1],
     [1, 1, 2, 3],
-    [3, 1, 1, 2]
-]
+    [3, 1, 1, 2],
+]  # fmt: skip
 
 INV_MIX_MATRIX = [
     [14, 11, 13, 9],
     [9, 14, 11, 13],
     [13, 9, 14, 11],
-    [11, 13, 9, 14]
-]
+    [11, 13, 9, 14],
+]  # fmt: skip
 
 
 @dataclass
@@ -65,20 +65,20 @@ def generate_key() -> AESKey:
     return AESKey(secrets.token_bytes(BLOCK_SIZE))
 
 
-"""
-multiplies a byte by 2
-"""
 def xtime(x):
+    """
+    multiplies a byte by 2
+    """
     x <<= 1
     if x & 0x100:
         x ^= 0x11B
     return x & 0xFF
 
 
-"""
-multiplies two bytes in GF(2^8)
-"""
 def gf_mul(a, b):
+    """
+    multiplies two bytes in GF(2^8)
+    """
     result = 0
     while b:
         if b & 1:
@@ -88,10 +88,10 @@ def gf_mul(a, b):
     return result
 
 
-"""
-inverse of S-box
-"""
 def build_inv_sbox():
+    """
+    inverse of S-box
+    """
     inv_sbox = [0] * 256
 
     for i in range(256):
@@ -108,12 +108,14 @@ def build_round_constant(num_values):
         value = xtime(value)
     return round_constant
 
-"""
-Padding for strings length != 16
-"""
+
 def pad(data: bytes) -> bytes:
+    """
+    Padding for strings length != 16
+    """
     pad_len = BLOCK_SIZE - (len(data) % BLOCK_SIZE)
     return data + bytes([pad_len] * pad_len)
+
 
 def unpad(data: bytes) -> bytes:
     if not data or len(data) % BLOCK_SIZE != 0:
@@ -129,19 +131,20 @@ def unpad(data: bytes) -> bytes:
 
     return data[:-pad_len]
 
-"""
-4 transformations (encryption)
-"""
+
 def substitute_bytes(state):
+    """
+    4 transformations (encryption)
+    """
     return [SBOX[x] for x in state]
 
 
-"""
-It moves each row of the AES state to the left,
-with the first row unchanged, the second shifted by 1,
-the third by 2, and the fourth by 3 left circular shift.
-"""
 def shift_rows(state):
+    """
+    It moves each row of the AES state to the left,
+    with the first row unchanged, the second shifted by 1,
+    the third by 2, and the fourth by 3 left circular shift.
+    """
     s = state[:]
 
     for row in range(4):
@@ -156,12 +159,12 @@ def shift_rows(state):
     return s
 
 
-"""
-MixColumns multiplies each state column by a fixed AES matrix.
-It mixes the 4 bytes in each column using matrix multiplication to create new values,
-so each output byte depends on all 4 input bytes in that column.
-"""
 def mix_columns(state):
+    """
+    MixColumns multiplies each state column by a fixed AES matrix.
+    It mixes the 4 bytes in each column using matrix multiplication to create new values,
+    so each output byte depends on all 4 input bytes in that column.
+    """
     s = state[:]
 
     for i in range(0, 16, 4):
@@ -170,10 +173,10 @@ def mix_columns(state):
         new_column = [0, 0, 0, 0]
         for row in range(4):
             new_column[row] = (
-                gf_mul(MIX_MATRIX[row][0], column[0]) ^
-                gf_mul(MIX_MATRIX[row][1], column[1]) ^
-                gf_mul(MIX_MATRIX[row][2], column[2]) ^
-                gf_mul(MIX_MATRIX[row][3], column[3])
+                gf_mul(MIX_MATRIX[row][0], column[0])
+                ^ gf_mul(MIX_MATRIX[row][1], column[1])
+                ^ gf_mul(MIX_MATRIX[row][2], column[2])
+                ^ gf_mul(MIX_MATRIX[row][3], column[3])
             )
 
         s[i], s[i + 1], s[i + 2], s[i + 3] = new_column
@@ -181,10 +184,10 @@ def mix_columns(state):
     return s
 
 
-"""
-XORs each byte of the state with the corresponding byte from the round key.
-"""
 def add_round_key(state, round_key):
+    """
+    XORs each byte of the state with the corresponding byte from the round key.
+    """
     return [state[i] ^ round_key[i] for i in range(BLOCK_SIZE)]
 
 
@@ -192,6 +195,7 @@ def add_round_key(state, round_key):
 4 transformations (decryption, inv)
 """
 INV_SBOX = build_inv_sbox()
+
 
 def inv_substitute_bytes(state):
     return [INV_SBOX[x] for x in state]
@@ -220,20 +224,20 @@ def inv_mix_columns(state):
 
         for row in range(4):
             s[i + row] = (
-                gf_mul(column[0], INV_MIX_MATRIX[row][0]) ^
-                gf_mul(column[1], INV_MIX_MATRIX[row][1]) ^
-                gf_mul(column[2], INV_MIX_MATRIX[row][2]) ^
-                gf_mul(column[3], INV_MIX_MATRIX[row][3])
+                gf_mul(column[0], INV_MIX_MATRIX[row][0])
+                ^ gf_mul(column[1], INV_MIX_MATRIX[row][1])
+                ^ gf_mul(column[2], INV_MIX_MATRIX[row][2])
+                ^ gf_mul(column[3], INV_MIX_MATRIX[row][3])
             )
 
     return s
 
 
-"""
-Key Expansion: the method returns all AES round keys as a list.
-XORs of round constant with g function output
-"""
 def g(word, rcon):
+    """
+    Key Expansion: the method returns all AES round keys as a list.
+    XORs of round constant with g function output
+    """
     word = word[1:] + word[:1]
     word = [SBOX[x] for x in word]
     word[0] ^= rcon
@@ -246,7 +250,7 @@ def expand_key(key: bytes):
     if len(key) != BLOCK_SIZE:
         raise ValueError("AES-128 key must be 16 bytes.")
 
-    words = [list(key[i:i + 4]) for i in range(0, 16, 4)]
+    words = [list(key[i : i + 4]) for i in range(0, 16, 4)]
 
     for i in range(4, 44):
         temp = words[i - 1][:]
@@ -320,7 +324,7 @@ def encrypt(plaintext: bytes, key: AESKey) -> bytes:
     ciphertext = b""
 
     for i in range(0, len(plaintext), BLOCK_SIZE):
-        block = plaintext[i:i + BLOCK_SIZE]
+        block = plaintext[i : i + BLOCK_SIZE]
         ciphertext += encrypt_block(block, key)
 
     return ciphertext
@@ -333,7 +337,7 @@ def decrypt(ciphertext: bytes, key: AESKey) -> bytes:
     plaintext = b""
 
     for i in range(0, len(ciphertext), BLOCK_SIZE):
-        block = ciphertext[i:i + BLOCK_SIZE]
+        block = ciphertext[i : i + BLOCK_SIZE]
         plaintext += decrypt_block(block, key)
 
     return unpad(plaintext)
@@ -355,5 +359,6 @@ def main():
     print("Recovered :", recovered.decode("utf-8"))
     print("Match     :", recovered == plaintext)
 
-if __name__ == "__main__": 
+
+if __name__ == "__main__":
     main()
