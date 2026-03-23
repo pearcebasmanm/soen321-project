@@ -1,8 +1,6 @@
 """
 Main for the fastapi web application
 """
-from __future__ import annotations
-
 from fastapi import FastAPI, HTTPException
 
 from api.schemas import EncryptedPackage

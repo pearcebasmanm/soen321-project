@@ -1,8 +1,6 @@
 """
 Very simple in-memory storage for encrypted message packages.
 """
-from __future__ import annotations
-
 _store: dict[str, dict] = {}
 
 

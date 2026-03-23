@@ -1,8 +1,6 @@
 """
 Schema definitions for encrypted message payloads used in the API.
 """
-from __future__ import annotations
-
 from pydantic import BaseModel
 
 

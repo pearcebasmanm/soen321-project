@@ -1,6 +1,4 @@
 """Alice Script"""
-from __future__ import annotations
-
 import requests
 
 from api.crypto import encrypt_and_sign

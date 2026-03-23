@@ -1,7 +1,4 @@
 """Bob Script"""
-
-from __future__ import annotations
-
 import requests
 
 from api.crypto import verify_and_decrypt

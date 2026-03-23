@@ -1,6 +1,4 @@
 """Script to setup demo keys"""
-from __future__ import annotations
-
 from api.crypto import generate_demo_keys
 
 
