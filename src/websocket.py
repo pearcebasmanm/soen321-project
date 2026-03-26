@@ -4,20 +4,36 @@ import sys
 from websockets.asyncio.server import serve
 from websockets.sync.client import connect
 
+import aes
 
-async def echo(websocket):
-    async for message in websocket:
-        await websocket.send(message)
+
+async def aes_listen(websocket):
+    # while True:
+    # INCREDIBLY INSECURE, ONLY FOR PROTOTYPING
+    key_bytes = await websocket.recv()
+
+    ciphertext = await websocket.recv()
+
+    message = aes.decrypt_text(ciphertext, aes.AESKey(key_bytes))
+    print(f"Received AES encrypted message: {message}")
+
+    # async for message in websocket:
+    #     await websocket.send(message)
+
+
+def aes_send(dest: str, message: str):
+    with connect(f"ws://{dest}:8765") as websocket:
+        key = aes.generate_key()
+        ciphertext = aes.encrypt_text(message, key)
+        websocket.send(key.key_bytes)
+        websocket.send(ciphertext)
 
 
 async def main():
-    if len(sys.argv) > 1:
-        with connect("ws://192.168.4.25:8765") as websocket:
-            websocket.send(f"{sys.argv[1]}")
-            message = websocket.recv()
-            print(f"Got: {message}")
+    if len(sys.argv) > 2:
+        aes_send(sys.argv[1], sys.argv[2])
     else:
-        async with serve(echo, "", 8765) as server:
+        async with serve(aes_listen, "", 8765) as server:
             await server.serve_forever()
 
 
