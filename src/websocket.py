@@ -12,12 +12,12 @@ async def echo(websocket):
 
 async def main():
     if len(sys.argv) > 1:
-        with connect("ws://localhost:8765") as websocket:
-            websocket.send("Hello World!")
+        with connect("ws://192.168.4.25:8765") as websocket:
+            websocket.send(f"{sys.argv[1]}")
             message = websocket.recv()
             print(f"Got: {message}")
     else:
-        async with serve(echo, "localhost", 8765) as server:
+        async with serve(echo, "", 8765) as server:
             await server.serve_forever()
 
 
