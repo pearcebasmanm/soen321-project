@@ -1,9 +1,13 @@
 [project]
 name = "soen321-project"
 version = "0.1.0"
-description = "Add your description here"
+description = "Secure messaging system with DH key exchange and RSA signatures"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "click>=8.3.1",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "websockets>=13.0",
+    "httpx>=0.27.0",
 ]
