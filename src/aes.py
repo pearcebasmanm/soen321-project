@@ -361,7 +361,6 @@ def main():
 
     text = "no"
     plaintext = text.encode("utf-8")
-    ciphertext = encrypt_text(text, key)
 
     ciphertext = encrypt(plaintext, key)
     recovered = decrypt(ciphertext, key)

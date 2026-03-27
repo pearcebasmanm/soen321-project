@@ -4,21 +4,25 @@ import hashlib
 import math
 
 from dataclasses import dataclass
+from dataclasses_json import dataclass_json
 from number_theory import generate_prime
 
 
+@dataclass_json
 @dataclass
 class RSAPublicKey:
     e: int
     n: int
 
 
+@dataclass_json
 @dataclass
 class RSAPrivateKey:
     d: int
     n: int
 
 
+@dataclass_json
 @dataclass
 class RSAKeyPair:
     public: RSAPublicKey
