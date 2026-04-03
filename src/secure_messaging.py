@@ -202,12 +202,12 @@ def encrypt_message(
 
 
 def decrypt_message(
-    receiver_public_verify_key, session: SessionState, packet: dict[str, Any]
+    receiver_public: RemoteParty, session: SessionState, packet: dict[str, Any]
 ) -> str:
     header_bytes = json.dumps(packet["header"], sort_keys=True).encode()
     ciphertext = bytes.fromhex(packet["ciphertext_hex"])
     if not verify(
-        header_bytes + ciphertext, packet["signature"], receiver_public_verify_key
+        header_bytes + ciphertext, packet["signature"], receiver_public.rsa_public_keys
     ):
         raise ValueError("Invalid message signature")
 

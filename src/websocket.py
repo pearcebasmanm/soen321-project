@@ -43,7 +43,7 @@ async def aes_listen(websocket):
     await websocket.send(message_2.to_json())
 
     packet = json.loads(await websocket.recv())
-    message = decrypt_message(sender_public.rsa_public_keys, user2_state, packet)
+    message = decrypt_message(sender_public, user2_state, packet)
     print(f"Received message: {message}")
 
 

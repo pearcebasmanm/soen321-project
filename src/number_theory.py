@@ -8,27 +8,12 @@ import secrets
 _SMALL_PRIMES = (3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47)
 
 
-def extended_gcd(a: int, b: int) -> tuple[int, int, int]:
-    """Return (g, x, y) such that ax + by = g = gcd(a, b)."""
-    old_r, r = a, b
-    old_s, s = 1, 0
-    old_t, t = 0, 1
-
-    while r != 0:
-        q = old_r // r
-        old_r, r = r, old_r - q * r  # Compute gcd
-        old_s, s = s, old_s - q * s  # Guarantee that old_s = old_s + qs
-        old_t, t = t, old_t - q * t  # Guarantee that old_t = t + qt
-
-    return old_r, old_s, old_t
-
-
 def is_probable_prime(n: int, rounds: int = 16) -> bool:
     """Miller-Rabin primality test."""
     if n < 2:
         return False  # Numbers smaller than two are not primes
     if n in (2, 3):
-        return True  # 2 and 3 are not primes
+        return True  # 2 and 3 are primes
     if n % 2 == 0:
         return False  # Even numbers are not primes
     for p in _SMALL_PRIMES:  # Quick check with small primes
