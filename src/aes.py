@@ -343,6 +343,18 @@ def decrypt(ciphertext: bytes, key: AESKey) -> bytes:
     return unpad(plaintext)
 
 
+def encrypt_text(text: str, key: AESKey) -> bytes:
+    plaintext = text.encode("utf-8")
+    ciphertext = encrypt(plaintext, key)
+    return ciphertext
+
+
+def decrypt_text(ciphertext: bytes, key: AESKey) -> str:
+    recovered = decrypt(ciphertext, key)
+    message = recovered.decode("utf-8")
+    return message
+
+
 def main():
     key = generate_key()
     print("Key       :", key)

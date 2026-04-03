@@ -3,6 +3,7 @@
 import secrets
 
 from dataclasses import dataclass
+from dataclasses_json import dataclass_json
 
 
 # Using a fixed large prime just for simple demos and tests.
@@ -11,6 +12,7 @@ DEFAULT_P = (1 << 127) - 1
 DEFAULT_G = 3
 
 
+@dataclass_json
 @dataclass
 class DHParameters:
     p: int = DEFAULT_P

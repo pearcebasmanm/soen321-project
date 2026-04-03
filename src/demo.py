@@ -1,7 +1,8 @@
 from dh import DHParameters
 from rsa import generate_keypair
 from secure_messaging import (
-    Party,
+    LocalParty,
+    RemoteParty,
     initiate_session,
     respond_session,
     finalize_session,
@@ -13,8 +14,10 @@ from secure_messaging import (
 
 def main() -> None:
 
-    user1 = Party(name="User1", rsa_keys=generate_keypair(bits=512))
-    user2 = Party(name="User2", rsa_keys=generate_keypair(bits=512))
+    user1 = LocalParty(name="User1", rsa_keys=generate_keypair(bits=512))
+    user1_remote = RemoteParty(user1.name, user1.rsa_keys.public)
+    user2 = LocalParty(name="User2", rsa_keys=generate_keypair(bits=512))
+    user2_remote = RemoteParty(user2.name, user2.rsa_keys.public)
     params = DHParameters()
     plaintext = "I have a crush on my professor, but I don't know how to tell her. I hope she doesn't find out."
 
@@ -23,17 +26,20 @@ def main() -> None:
     print(f"   User2 modulus bit-length: {user2.rsa_keys.public.n.bit_length()}")
     print(f"   DH prime bit-length:      {params.p.bit_length()}")
 
-    message_1, user1_private_dh = initiate_session(user1, user2, params)
+    message_1, user1_private_dh = initiate_session(user1, user2_remote, params)
     print("\n2) User1 sends signed DH value A = g^a mod p")
-    print(f"   A = {message_1['public_value']}")
+    print(f"   A = {message_1.public_value}")
 
     message_2, user2_private_dh, user2_state = respond_session(
-        user2, user1, params, message_1
+        user2, user1_remote, params, message_1
     )
     print("\n3) User2 verifies User1's signature, sends signed DH value B = g^b mod p")
-    print(f"   B = {message_2['public_value']}")
+    print(f"   B = {message_2.public_value}")
 
-    user1_state = finalize_session(user1, user2, params, user1_private_dh, message_2)
+    # user1, user2.public, params, message_2
+    user1_state = finalize_session(
+        user1, user2_remote, params, user1_private_dh, message_2
+    )
     print("\n4) User1 verifies User2's signature and computes the shared secret.")
     print(f"   User1 shared secret: {user1_state.shared_secret}")
     print(f"   User2 shared secret: {user2_state.shared_secret}")
