@@ -21,7 +21,7 @@ from secure_messaging import (
 )
 
 
-async def aes_listen(websocket):
+async def message_receive(websocket):
     # Generate rsa keys
     receiver = LocalParty(name="reveiver", rsa_keys=rsa.generate_keypair(bits=512))
     receiver_public = RemoteParty(receiver.name, receiver.rsa_keys.public)
@@ -47,8 +47,8 @@ async def aes_listen(websocket):
     print(f"Received message: {message}")
 
 
-def aes_send(dest: str, message: str):
-    with connect(f"ws://{dest}:8765") as websocket:
+def message_send(dest: str, message: str, port: int):
+    with connect(f"ws://{dest}:{port}") as websocket:
         # Generate rsa keys and send our public keys
         sender = LocalParty(name="sender", rsa_keys=rsa.generate_keypair(bits=512))
         sender_public = RemoteParty(sender.name, sender.rsa_keys.public)
@@ -76,13 +76,9 @@ def aes_send(dest: str, message: str):
         websocket.send(json.dumps(packet))
 
 
-async def main():
-    if len(sys.argv) > 2:
-        aes_send(sys.argv[1], sys.argv[2])
-    else:
-        async with serve(aes_listen, "", 8765) as server:
+def listener_thread(port):
+    async def _serve_listener(port):
+        async with serve(message_receive, "", port) as server:
             await server.serve_forever()
 
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(_serve_listener(port))
