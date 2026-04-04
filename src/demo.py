@@ -1,3 +1,5 @@
+"""This file is redundent and has to be deleted."""
+
 from dh import DHParameters
 from rsa import generate_keypair
 from secure_messaging import (

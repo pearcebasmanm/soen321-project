@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from typing import Any
 
+import aes as aes_module
+
 from dh import (
     DHParameters,
     compute_public_value,
@@ -34,20 +36,6 @@ def _b(value: int) -> bytes:
 def _derive_session_key(shared_secret: int, nonce_a: bytes, nonce_b: bytes) -> bytes:
     seed = _b(shared_secret) + nonce_a + nonce_b
     return hashlib.sha256(seed).digest()
-
-
-def _keystream(session_key: bytes, nbytes: int) -> bytes:
-    stream = bytearray()
-    counter = 0
-    while len(stream) < nbytes:
-        block = hashlib.sha256(session_key + counter.to_bytes(4, "big")).digest()
-        stream.extend(block)
-        counter += 1
-    return bytes(stream[:nbytes])
-
-
-def _xor_bytes(a: bytes, b: bytes) -> bytes:
-    return bytes(x ^ y for x, y in zip(a, b))
 
 
 @dataclass_json
@@ -104,13 +92,13 @@ def initiate_session(
 ) -> tuple[FirstPassMessage, int]:
     a = generate_private_exponent(params.p)
     A = compute_public_value(a, params)
-    nonce_a = secrets.token_bytes(16)
+    nonce_a = secrets.token_bytes(16)  # Generate nonce to avoid replay attack
     payload = f"{initiator.name}|{responder.name}|{A}|{nonce_a.hex()}".encode()
     sigma_a = sign(payload, initiator.rsa_keys.private)
     message_1 = FirstPassMessage(
         sender=initiator.name,
         receiver=responder.name,
-        public_value=A,  # g^a
+        public_value=A,  # g^a mod p
         nonce_a=nonce_a.hex(),
         signature=sigma_a,
     )
@@ -195,16 +183,14 @@ def finalize_session(
 def encrypt_message(
     sender: LocalParty, session: SessionState, plaintext: str
 ) -> dict[str, Any]:
-    data = plaintext.encode("utf-8")
-    ks = _keystream(session.session_key, len(data))
-    ciphertext = _xor_bytes(data, ks)
+    aes_key = aes_module.AESKey(session.session_key[: aes_module.BLOCK_SIZE])
+    ciphertext = aes_module.encrypt_text(plaintext, aes_key)
 
     header = {
         "sender": sender.name,
         "receiver_pair": f"{session.initiator}<->{session.responder}",
         "nonce_a": session.nonce_a.hex(),
         "nonce_b": session.nonce_b.hex(),
-        "length": len(data),
     }
     header_bytes = json.dumps(header, sort_keys=True).encode()
     signature = sign(header_bytes + ciphertext, sender.rsa_keys.private)
@@ -225,9 +211,8 @@ def decrypt_message(
     ):
         raise ValueError("Invalid message signature")
 
-    ks = _keystream(session.session_key, len(ciphertext))
-    plaintext = _xor_bytes(ciphertext, ks)
-    return plaintext.decode("utf-8")
+    aes_key = aes_module.AESKey(session.session_key[: aes_module.BLOCK_SIZE])
+    return aes_module.decrypt_text(ciphertext, aes_key)
 
 
 def packet_digest(packet: dict[str, Any]) -> str:

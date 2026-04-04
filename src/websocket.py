@@ -1,10 +1,10 @@
 import asyncio
+import json
 import sys
 
 from websockets.asyncio.server import serve
 from websockets.sync.client import connect
 
-import aes
 import rsa
 import dh
 
@@ -16,6 +16,8 @@ from secure_messaging import (
     initiate_session,
     respond_session,
     finalize_session,
+    encrypt_message,
+    decrypt_message,
 )
 
 
@@ -40,14 +42,9 @@ async def aes_listen(websocket):
     )
     await websocket.send(message_2.to_json())
 
-    # "Generate" the aes key from the session key
-    session_key = user2_state.session_key
-    aes_key = aes.AESKey(session_key[: aes.BLOCK_SIZE])
-
-    ciphertext = await websocket.recv()
-
-    message = aes.decrypt_text(ciphertext, aes_key)
-    print(f"Received AES encrypted message: {message}")
+    packet = json.loads(await websocket.recv())
+    message = decrypt_message(sender_public.rsa_public_keys, user2_state, packet)
+    print(f"Received message: {message}")
 
 
 def aes_send(dest: str, message: str):
@@ -55,7 +52,6 @@ def aes_send(dest: str, message: str):
         # Generate rsa keys and send our public keys
         sender = LocalParty(name="sender", rsa_keys=rsa.generate_keypair(bits=512))
         sender_public = RemoteParty(sender.name, sender.rsa_keys.public)
-        # TODO: see if this can be authenticated
         websocket.send(sender_public.to_json())
 
         # Receive their public keys
@@ -75,13 +71,9 @@ def aes_send(dest: str, message: str):
             sender, receiver_public, params, user1_private_dh, message_2
         )
 
-        # "Generate" the aes key from the session key
-        session_key = user1_state.session_key
-        aes_key = aes.AESKey(session_key[: aes.BLOCK_SIZE])
-
-        # Encrypt and send our actual message
-        ciphertext = aes.encrypt_text(message, aes_key)
-        websocket.send(ciphertext)
+        # Encrypt, sign, and send the message
+        packet = encrypt_message(sender, user1_state, message)
+        websocket.send(json.dumps(packet))
 
 
 async def main():

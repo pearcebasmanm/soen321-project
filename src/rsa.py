@@ -32,7 +32,7 @@ class RSAKeyPair:
 def generate_keypair(bits: int = 512, e: int = 65537) -> RSAKeyPair:
     """
     Generate an RSA key pair.
-    Num of bits is set to 512 to keep the demo quick and simple.
+    Num of bits is set to 512 to keep the demo fast and simple.
     Explained in the report that real systems should use larger parameters, typically with 2048 bits.
     """
     half = bits // 2
