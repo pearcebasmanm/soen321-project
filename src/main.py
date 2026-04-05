@@ -231,9 +231,9 @@ def demo(bits):
     # Step 1: key generation
     click.echo(f"\n[Step 1] Generating {bits}-bit RSA key pairs for User1 and User2")
     user1 = LocalParty(name="User1", rsa_keys=generate_keypair(bits=bits))
-    user1_remote = RemoteParty(user1.name, user1.rsa_keys.public)
+    user1_public = RemoteParty(user1.name, user1.rsa_keys.public)
     user2 = LocalParty(name="User2", rsa_keys=generate_keypair(bits=bits))
-    user2_remote = RemoteParty(user2.name, user2.rsa_keys.public)
+    user2_public = RemoteParty(user2.name, user2.rsa_keys.public)
     params = DHParameters()
     click.echo(f"  User1's modulus : {user1.rsa_keys.public.n.bit_length()} bits")
     click.echo(f"  User2's modulus : {user2.rsa_keys.public.n.bit_length()} bits")
@@ -242,20 +242,20 @@ def demo(bits):
     # Step 2: User1 initiates DH
     click.echo("\n[Step 2] User1 initiates Diffie-Hellman key exchange")
     click.echo("  User1 computes A = g^a mod p and signs A with the RSA private key")
-    msg1, user1_priv = initiate_session(user1, user2_remote, params)
+    msg1, user1_priv = initiate_session(user1, user2_public, params)
     click.echo(f"  A (first 40 digits) : {str(msg1.public_value)[:40]}...")
 
     # Step 3: User2 verifies and responds
     click.echo("\n[Step 3] User2 verifies User1's RSA signature.")
     click.echo("  User2 computes B = g^b mod p, derives the shared secret, signs B")
-    msg2, _, user2_state = respond_session(user2, user1_remote, params, msg1)
+    msg2, _, user2_state = respond_session(user2, user1_public, params, msg1)
     click.echo(f"  B (first 40 digits) : {str(msg2.public_value)[:40]}...")
 
     # Step 4: User1 finalizes
     click.echo(
         "\n[Step 4] User1 verifies User2's RSA signature and derives session key"
     )
-    user1_state = finalize_session(user1, user2_remote, params, user1_priv, msg2)
+    user1_state = finalize_session(user1, user2_public, params, user1_priv, msg2)
     click.echo(
         f"  Shared secrets match : {user1_state.shared_secret == user2_state.shared_secret}"
     )
@@ -271,7 +271,7 @@ def demo(bits):
 
     # Step 6: Decrypt
     click.echo("\n[Step 6] User2 verifies User1's RSA signature and decrypts")
-    recovered = decrypt_message(user1.rsa_keys.public, user2_state, packet)
+    recovered = decrypt_message(user1_public, user2_state, packet)
     click.echo("  Signature valid : True")
     click.echo(f"  Plaintext       : {recovered}")
     click.echo("  Demo complete.")
