@@ -6,7 +6,7 @@ Protocol summary:
 3. DH public values are signed with RSA to mitigate the man-in-the-middle
    attack discussed in the course slides.
 4. A session key is derived from the DH secret and nonces using SHA-256.
-5. Messages are encrypted using a hash-based XOR keystream.
+5. Messages are encrypted using AES-128 CBC mode with a random IV and PKCS7 padding.
 6. Ciphertext metadata is signed by the sender.
 """
 
@@ -85,6 +85,9 @@ class SessionState:
     public_b: int
     shared_secret: int
     session_key: bytes
+    # Per-message sequence counters to prevent intra-session replay attacks.
+    outgoing_counter: int = 0
+    incoming_counter: int = 0
 
 
 def initiate_session(
@@ -191,7 +194,9 @@ def encrypt_message(
         "receiver_pair": f"{session.initiator}<->{session.responder}",
         "nonce_a": session.nonce_a.hex(),
         "nonce_b": session.nonce_b.hex(),
+        "seq": session.outgoing_counter,
     }
+    session.outgoing_counter += 1
     header_bytes = json.dumps(header, sort_keys=True).encode()
     signature = sign(header_bytes + ciphertext, sender.rsa_keys.private)
     return {
@@ -211,10 +216,27 @@ def decrypt_message(
     ):
         raise ValueError("Invalid message signature")
 
+    # Verify the packet belongs to this session, preventing replay attacks.
+    header = packet["header"]
+    expected_pair = f"{session.initiator}<->{session.responder}"
+    if header["receiver_pair"] != expected_pair:
+        raise ValueError(
+            f"Session mismatch: expected '{expected_pair}', got '{header['receiver_pair']}'"
+        )
+    if header["nonce_a"] != session.nonce_a.hex():
+        raise ValueError("Session mismatch: nonce_a does not match current session")
+    if header["nonce_b"] != session.nonce_b.hex():
+        raise ValueError("Session mismatch: nonce_b does not match current session")
+    if header["seq"] != session.incoming_counter:
+        raise ValueError(
+            f"Replay detected: expected seq {session.incoming_counter}, got {header['seq']}"
+        )
     aes_key = aes_module.AESKey(session.session_key[: aes_module.BLOCK_SIZE])
-    return aes_module.decrypt_text(ciphertext, aes_key)
+    plaintext = aes_module.decrypt_text(ciphertext, aes_key)
+    session.incoming_counter += 1
+    return plaintext
 
-
+# This method computes a SHA-256 digest of the packet for display/testing.
 def packet_digest(packet: dict[str, Any]) -> str:
     serialized = json.dumps(packet, sort_keys=True).encode()
     return hashlib.sha256(serialized).hexdigest()

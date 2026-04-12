@@ -1,4 +1,4 @@
-"""Secure Messaging Command Line Interface — SOEN 321 Course Project
+"""Secure Messaging Command Line Interface
 
 Commands:
   demo      Run the complete end-to-end demonstration
@@ -57,13 +57,11 @@ def _save_json(path: str, data: dict) -> None:
 # CLI group
 @click.group()
 def cli():
-    """Secure Messaging System — SOEN 321 Course Project
-
-    \b
+    """
+    bash code:
     Quick start:
         python main.py demo
 
-    \b
     Step-by-step usage:
         python main.py keygen   --name User1 --out user1.json
         python main.py keygen   --name User2 --out user2.json
@@ -96,13 +94,15 @@ def keygen(name, out, bits):
 @click.option("--user2", "user2_path", required=True, help="User2's key file (JSON).")
 @click.option("--out", required=True, help="Output session file path (JSON).")
 def exchange(user1_path, user2_path, out):
-    user1 = LocalParty.from_dict(_load_json(user1_path))
+    data1 = _load_json(user1_path)
+    user1 = LocalParty(name=data1["name"], rsa_keys=RSAKeyPair.from_dict(data1))
     user1_remote = RemoteParty(user1.name, user1.rsa_keys.public)
-    user2 = LocalParty.from_dict(_load_json(user2_path))
+    data2 = _load_json(user2_path)
+    user2 = LocalParty(name=data2["name"], rsa_keys=RSAKeyPair.from_dict(data2))
     user2_remote = RemoteParty(user2.name, user2.rsa_keys.public)
     params = DHParameters()
 
-    click.echo(f"DH prime bit-length : {params.p.bit_length()}  (2^127 - 1)")
+    click.echo(f"DH prime bit-length : {params.p.bit_length()}  (RFC 3526 Group 14)")
 
     # Step 1: User1 sends signed DH public value A = g^a mod p
     click.echo(
@@ -143,7 +143,7 @@ def exchange(user1_path, user2_path, out):
         f"    Shared secret (first 10 hex) : {user1_state.session_key.hex()[:12]}..."
     )
 
-    _save_json(out, user1_state.to_dict())
+    Path(out).write_text(user1_state.to_json(indent=2))
     click.echo(f"\nSession saved to: {out}")
 
 
@@ -162,8 +162,9 @@ def exchange(user1_path, user2_path, out):
 @click.option("--message", required=True, help="Plaintext message to encrypt.")
 @click.option("--out", required=True, help="Output packet file path (JSON).")
 def encrypt(session_path, sender, sender_key_path, message, out):
-    session = SessionState.from_dict(_load_json(session_path))
-    party = LocalParty.from_dict(_load_json(sender_key_path))
+    session = SessionState.from_json(Path(session_path).read_text())
+    data = _load_json(sender_key_path)
+    party = LocalParty(name=data["name"], rsa_keys=RSAKeyPair.from_dict(data))
 
     if party.name != sender:
         click.echo(
@@ -172,6 +173,7 @@ def encrypt(session_path, sender, sender_key_path, message, out):
         )
 
     packet = encrypt_message(party, session, message)
+    Path(session_path).write_text(session.to_json(indent=2))
     digest = packet_digest(packet)
 
     click.echo(f"Sender    : {sender}")
@@ -203,21 +205,25 @@ def encrypt(session_path, sender, sender_key_path, message, out):
     help="Encrypted packet file (JSON) from 'encrypt'.",
 )
 def decrypt(session_path, sender_key_path, packet_path):
-    session = SessionState.from_dict(_load_json(session_path))
+    session = SessionState.from_json(Path(session_path).read_text())
     sender_data = _load_json(sender_key_path)
     packet = _load_json(packet_path)
 
-    sender_pub = RSAKeyPair.from_dict(sender_data).public
+    sender_remote = RemoteParty(
+        name=sender_data["name"],
+        rsa_public_keys=RSAKeyPair.from_dict(sender_data).public,
+    )
 
     click.echo(f"Claimed sender : {packet['header']['sender']}")
     click.echo(f"Verifying RSA signature with {sender_data['name']}'s public key...")
 
     try:
-        plaintext = decrypt_message(sender_pub, session, packet)
+        plaintext = decrypt_message(sender_remote, session, packet)
     except ValueError:
         click.echo(f"FAILED — {ValueError}", err=True)
         sys.exit(1)
 
+    Path(session_path).write_text(session.to_json(indent=2))
     click.echo("Signature valid : True")
     click.echo(f"Plaintext       : {plaintext}")
 

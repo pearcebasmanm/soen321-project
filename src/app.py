@@ -1,5 +1,9 @@
+"""
+Real-time secure chat entry point.
+Starts a background thread to receive incoming messages.
+Run two instances on two different machines to establish a live channel.
+"""
 import click
-import asyncio
 from threading import Thread
 
 from websocket import listener_thread, message_send

@@ -53,16 +53,6 @@ def generate_keypair(bits: int = 512, e: int = 65537) -> RSAKeyPair:
     )
 
 
-def encrypt_int(m: int, public_key: RSAPublicKey) -> int:
-    if not (0 <= m < public_key.n):
-        raise ValueError("Message representative out of range for RSA modulus.")
-    return pow(m, public_key.e, mod=public_key.n)
-
-
-def decrypt_int(c: int, private_key: RSAPrivateKey) -> int:
-    return pow(c, private_key.d, mod=private_key.n)
-
-
 # This method is used to hash the plaintext before RSA.
 def hash_to_int(data: bytes) -> int:
     return int.from_bytes(hashlib.sha256(data).digest(), byteorder="big")

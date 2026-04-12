@@ -1,27 +1,14 @@
+"""
+Implementation of AES-128 and CBC mode utilities
+"""
+
 from dataclasses import dataclass
 import secrets
 
 BLOCK_SIZE = 16
 NUM_ROUNDS = 10
 
-"""
-AES-128 uses a 16-byte key.
-Key expansion produces 44 words total.
-Each word is 4 bytes.
-44 words = 11 round keys * 4 words each.
 
-Last roundkey is used as the first initializer round key for decryption
-First key round 0 is used as the last roundkey of decryption
-
-Final round just three transformations
-(it is not completely opposite as it depends on the structure of the AES)
-"""
-
-"""
-S-box is a lookup table.
-It takes one byte and replaces it with another byte.
-1 byte = 2 hex digits
-"""
 SBOX = [
     0x63,0x7C,0x77,0x7B,0xF2,0x6B,0x6F,0xC5,0x30,0x01,0x67,0x2B,0xFE,0xD7,0xAB,0x76,
     0xCA,0x82,0xC9,0x7D,0xFA,0x59,0x47,0xF0,0xAD,0xD4,0xA2,0xAF,0x9C,0xA4,0x72,0xC0,
@@ -89,9 +76,6 @@ def gf_mul(a, b):
 
 
 def build_inv_sbox():
-    """
-    inverse of S-box
-    """
     inv_sbox = [0] * 256
 
     for i in range(256):
@@ -108,11 +92,10 @@ def build_round_constant(num_values):
         value = xtime(value)
     return round_constant
 
-
+"""
+Message padding
+"""
 def pad(data: bytes) -> bytes:
-    """
-    Padding for strings length != 16
-    """
     pad_len = BLOCK_SIZE - (len(data) % BLOCK_SIZE)
     return data + bytes([pad_len] * pad_len)
 
@@ -131,20 +114,12 @@ def unpad(data: bytes) -> bytes:
 
     return data[:-pad_len]
 
-
+# Four transformations for encryption
 def substitute_bytes(state):
-    """
-    4 transformations (encryption)
-    """
     return [SBOX[x] for x in state]
 
 
 def shift_rows(state):
-    """
-    It moves each row of the AES state to the left,
-    with the first row unchanged, the second shifted by 1,
-    the third by 2, and the fourth by 3 left circular shift.
-    """
     s = state[:]
 
     for row in range(4):
@@ -160,11 +135,6 @@ def shift_rows(state):
 
 
 def mix_columns(state):
-    """
-    MixColumns multiplies each state column by a fixed AES matrix.
-    It mixes the 4 bytes in each column using matrix multiplication to create new values,
-    so each output byte depends on all 4 input bytes in that column.
-    """
     s = state[:]
 
     for i in range(0, 16, 4):
@@ -185,14 +155,11 @@ def mix_columns(state):
 
 
 def add_round_key(state, round_key):
-    """
-    XORs each byte of the state with the corresponding byte from the round key.
-    """
     return [state[i] ^ round_key[i] for i in range(BLOCK_SIZE)]
 
 
 """
-4 transformations (decryption, inv)
+4 transformations for decryption
 """
 INV_SBOX = build_inv_sbox()
 
@@ -232,12 +199,10 @@ def inv_mix_columns(state):
 
     return s
 
-
-def g(word, rcon):
-    """
-    Key Expansion: the method returns all AES round keys as a list.
-    XORs of round constant with g function output
-    """
+"""
+Key expansion
+"""
+def key_expansion_word(word, rcon):
     word = word[1:] + word[:1]
     word = [SBOX[x] for x in word]
     word[0] ^= rcon
@@ -256,7 +221,7 @@ def expand_key(key: bytes):
         temp = words[i - 1][:]
 
         if i % 4 == 0:
-            temp = g(temp, ROUND_CONSTANT[(i // 4) - 1])
+            temp = key_expansion_word(temp, ROUND_CONSTANT[(i // 4) - 1])
 
         new_word = [words[i - 4][j] ^ temp[j] for j in range(4)]
         words.append(new_word)
@@ -271,6 +236,9 @@ def expand_key(key: bytes):
     return round_keys
 
 
+"""
+Encryption/Decryption
+"""
 def encrypt_block(plaintext: bytes, key: AESKey) -> bytes:
     if len(plaintext) != BLOCK_SIZE:
         raise ValueError("AES block must be 16 bytes.")
@@ -318,58 +286,61 @@ def decrypt_block(ciphertext: bytes, key: AESKey) -> bytes:
 
     return bytes(state)
 
-
-def encrypt(plaintext: bytes, key: AESKey) -> bytes:
+"""
+Encryption/Decryption using CBC mode.
+"""
+def encrypt_cbc(plaintext: bytes, key: AESKey, iv: bytes) -> bytes:
     plaintext = pad(plaintext)
     ciphertext = b""
+    prev_block = iv
 
     for i in range(0, len(plaintext), BLOCK_SIZE):
-        block = plaintext[i : i + BLOCK_SIZE]
-        ciphertext += encrypt_block(block, key)
+        block = bytes(a ^ b for a, b in zip(plaintext[i : i + BLOCK_SIZE], prev_block))
+        prev_block = encrypt_block(block, key)
+        ciphertext += prev_block
 
     return ciphertext
 
 
-def decrypt(ciphertext: bytes, key: AESKey) -> bytes:
+def decrypt_cbc(ciphertext: bytes, key: AESKey, iv: bytes) -> bytes:
     if len(ciphertext) % BLOCK_SIZE != 0:
         raise ValueError("Ciphertext must be a multiple of 16 bytes.")
 
     plaintext = b""
+    prev_block = iv
 
     for i in range(0, len(ciphertext), BLOCK_SIZE):
         block = ciphertext[i : i + BLOCK_SIZE]
-        plaintext += decrypt_block(block, key)
+        decrypted = decrypt_block(block, key)
+        plaintext += bytes(a ^ b for a, b in zip(decrypted, prev_block))
+        prev_block = block
 
     return unpad(plaintext)
 
-
+"""
+Add initializaion vector
+"""
 def encrypt_text(text: str, key: AESKey) -> bytes:
-    plaintext = text.encode("utf-8")
-    ciphertext = encrypt(plaintext, key)
-    return ciphertext
+    iv = secrets.token_bytes(BLOCK_SIZE)
+    return iv + encrypt_cbc(text.encode("utf-8"), key, iv)
 
 
 def decrypt_text(ciphertext: bytes, key: AESKey) -> str:
-    recovered = decrypt(ciphertext, key)
-    message = recovered.decode("utf-8")
-    return message
+    iv = ciphertext[:BLOCK_SIZE]
+    return decrypt_cbc(ciphertext[BLOCK_SIZE:], key, iv).decode("utf-8")
 
 
 def main():
     key = generate_key()
-    print("Key       :", key)
-
     text = "no"
-    plaintext = text.encode("utf-8")
 
-    ciphertext = encrypt(plaintext, key)
-    recovered = decrypt(ciphertext, key)
+    ciphertext = encrypt_text(text, key)
+    recovered = decrypt_text(ciphertext, key)
 
     print("Text      :", text)
-    print("Plaintext :", plaintext)
     print("Ciphertext:", ciphertext.hex())
-    print("Recovered :", recovered.decode("utf-8"))
-    print("Match     :", recovered == plaintext)
+    print("Recovered :", recovered)
+    print("Match     :", recovered == text)
 
 
 if __name__ == "__main__":

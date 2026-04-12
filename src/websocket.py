@@ -1,6 +1,8 @@
+"""
+WebSocket transport layer for real-time secure messaging.
+"""
 import asyncio
 import json
-import sys
 
 from websockets.asyncio.server import serve
 from websockets.sync.client import connect
@@ -37,7 +39,7 @@ async def message_receive(websocket):
 
     # Receive Diffie-Hellman first pass, and send the second pass
     message_1 = FirstPassMessage.from_json(await websocket.recv())
-    message_2, user2_private_dh, user2_state = respond_session(
+    message_2, _, user2_state = respond_session(
         receiver, sender_public, params, message_1
     )
     await websocket.send(message_2.to_json())
