@@ -1,5 +1,5 @@
 """
-Implementation of AES-128 and CBC mode utilities
+Implementation of AES
 """
 
 from dataclasses import dataclass
@@ -92,10 +92,11 @@ def build_round_constant(num_values):
         value = xtime(value)
     return round_constant
 
-"""
-Message padding
-"""
+
 def pad(data: bytes) -> bytes:
+    """
+    Padding for strings length != 16
+    """
     pad_len = BLOCK_SIZE - (len(data) % BLOCK_SIZE)
     return data + bytes([pad_len] * pad_len)
 
@@ -318,7 +319,7 @@ def decrypt_cbc(ciphertext: bytes, key: AESKey, iv: bytes) -> bytes:
     return unpad(plaintext)
 
 """
-Add initializaion vector
+Add initial value
 """
 def encrypt_text(text: str, key: AESKey) -> bytes:
     iv = secrets.token_bytes(BLOCK_SIZE)

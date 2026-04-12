@@ -236,7 +236,7 @@ def decrypt_message(
     session.incoming_counter += 1
     return plaintext
 
-# This method computes a SHA-256 digest of the packet for display/testing.
+# This method generates fingerprints for testing
 def packet_digest(packet: dict[str, Any]) -> str:
     serialized = json.dumps(packet, sort_keys=True).encode()
     return hashlib.sha256(serialized).hexdigest()
