@@ -11,10 +11,11 @@ A Python secure messaging system for the SOEN 321 final project. It implements a
 - Max Pearce Basman
 - Tianmu Yang
 
-## Setup
+## Development Setup
 
-- Install uv: https://docs.astral.sh/uv/getting-started/installation/
-- Run `uv run src/main.py`
+- Install uv (manages packages and environment automatically): https://docs.astral.sh/uv/getting-started/installation/
+- Install ruff (formatter, skip if just using application): https://docs.astral.sh/ruff/
+- Invoke python files with `uv run src/filename.py` instead of `python src/filename.py`
 
 ## Design Choices
 
@@ -32,44 +33,67 @@ A Python secure messaging system for the SOEN 321 final project. It implements a
 - `aes.py`: AES-128 with key expansion, encryption, decryption and PKCS7 padding
 - `secure_messaging.py`: authenticated three-phase DH session establishment and AES-encrypted message exchange
 - `main.py`: command-line interface for demo purposes
-- `websocket.py`: provides real-time communication between two machines
+- `websocket.py`: implements real-time communication infrastrure between two machines
+- `app.py`: provides a live application interface between two users
 
 ## Usage
 
-### Demo (single machine)
+### Protocol Demo (single machine)
 
 Runs the full protocol end-to-end in a single process.
 
 ```bash
-python src/main.py demo
+uv run src/main.py demo
+```
+
+### Attack Demo (single machine)
+
+Demonstrates three attack scenarios.
+
+```bash
+uv run src/attack_demo.py
 ```
 
 ### Step-by-step CLI
 
 ```bash
 # Generate RSA key pairs
-python src/main.py keygen --name User1 --out user1.json
-python src/main.py keygen --name User2 --out user2.json
+uv run src/main.py keygen --name User1 --out user1.json
+uv run src/main.py keygen --name User2 --out user2.json
 
 # Perform authenticated Diffie-Hellman key exchange
-python src/main.py exchange --user1 user1.json --user2 user2.json --out session.json
+uv run src/main.py exchange --user1 user1.json --user2 user2.json --out session.json
 
 # Encrypt and sign a message
-python src/main.py encrypt --session session.json --sender User1 \
+uv run src/main.py encrypt --session session.json --sender User1 \
                            --sender-key user1.json \
                            --message "Hello User2!" --out packet.json
 
 # Verify signature and decrypt
-python src/main.py decrypt --session session.json \
+uv run src/main.py decrypt --session session.json \
                            --sender-key user1.json --packet packet.json
 ```
 
-### WebSocket (two machines)
+### WebSocket Application (two machines on same network)
 
 ```bash
-# Machine A (receiver)
-python src/websocket.py
+# Machine A
+uv run src/app.py --dest <Machine-B-IP>
 
-# Machine B (sender)
-python src/websocket.py <Machine-A-IP> "Hello!"
+# Machine B
+uv run src/app.py --dest <Machine-A-IP>
+
+# start sending messages on either machine
+```
+
+### WebSocket Application (one machine)
+
+```bash
+# Console A
+uv run src/app.py --port 8001 --dest-port 8002
+
+# Console B
+uv run src/app.py --port 8002 --dest-port 8001
+
+# start sending messages on either console
 ```
